@@ -504,7 +504,7 @@ class DependencyById(Resource):
         dep = Dependency.query.get((task_id, predecessor_id))
         if not dep:
             return {"error": "Dependency not found."}, 404
-        if dep.task.project.creator_id != user.id and bot user.is_admin:
+        if dep.task.project.creator_id != user.id and not user.is_admin:
             return {"error": "Only the project creator can remove dependencies."}, 403
  
         db.session.delete(dep)
