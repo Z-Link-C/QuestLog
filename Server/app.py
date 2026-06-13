@@ -13,8 +13,7 @@ from models import (
 
 from helpers import (
     get_current_user, login_required, 
-    admin_required, owner_or_admin, user.is_admin
-    )
+    admin_required, owner_or_admin)
 
 #Auth
 class CheckSession(Resource):
@@ -89,7 +88,7 @@ class UserById(Resource):
         target = User.query.get(user_id)
         if not target:
             return {"error": "User not found."}, 404
-        if current.id != target.id and current.email != user.is_admin:
+        if current.id != target.id and current.email != current.is_admin:
             return {"error": "Access denied."}, 403
         
         user_schema = UserSchema()
@@ -104,7 +103,7 @@ class UserById(Resource):
         target = User.query.get(user_id)
         if not target:
             return {"error": "User not found."}, 404
-        if current.id != target.id and current.email != user.is_admin:
+        if current.id != target.id and current.email != current.is_admin:
             return {"error": "Access denied."}, 403
  
         data = request.json or {}
@@ -143,7 +142,7 @@ class ProjectList(Resource):
         if err:
             return err
  
-        if user.email == user.is_admin:
+        if user.is_admin:
             projects = Project.query.all()
         else:
             # created by user
@@ -259,7 +258,7 @@ class TaskList(Resource):
         # verify access
         is_creator  = project.creator_id == user.id
         is_assigned = any(a.project_id == project_id for a in user.assignments_received)
-        if not (is_creator or is_assigned or user.email == user.is_admin):
+        if not (is_creator or is_assigned or user.is_admin):
             return {"error": "Access denied."}, 403
 
         tasks_schema = TaskSchema(many=True)
@@ -280,7 +279,7 @@ class TaskList(Resource):
         project = Project.query.get(data["project_id"])
         if not project:
             return {"error": "Project not found."}, 404
-        if project.creator_id != user.id and user.email != user.is_admin:
+        if project.creator_id != user.id and not user.is_admin:
             return {"error": "Only the project creator can add tasks."}, 403
  
         task = Task(
@@ -412,7 +411,7 @@ class AssignmentList(Resource):
             resource = Project.query.get(data["project_id"])
             if not resource:
                 return {"error": "Project not found."}, 404
-            if resource.creator_id != assigner.id and assigner.email != user.is_admin:
+            if resource.creator_id != assigner.id and not assigner.is_admin:
                 return {"error": "Only the project creator can assign users."}, 403
             assignment = Assignment(
                 user_id=target_user.id,
@@ -423,7 +422,7 @@ class AssignmentList(Resource):
             resource = Task.query.get(data["task_id"])
             if not resource:
                 return {"error": "Task not found."}, 404
-            if resource.project.creator_id != assigner.id and assigner.email != user.is_admin:
+            if resource.project.creator_id != assigner.id and assigner.email != assigner.is_admin:
                 return {"error": "Only the project creator can assign tasks."}, 403
             assignment = Assignment(
                 user_id=target_user.id,
@@ -475,14 +474,14 @@ class DependencyList(Resource):
         if data["task_id"] == data["predecessor_id"]:
             return {"error": "A task cannot depend on itself."}, 422
  
-        task        = Task.query.get(data["task_id"])
+        task = Task.query.get(data["task_id"])
         predecessor = Task.query.get(data["predecessor_id"])
  
         if not task:
             return {"error": "Task not found."}, 404
         if not predecessor:
             return {"error": "Predecessor task not found."}, 404
-        if task.project.creator_id != user.id and user.email != user.is_admin:
+        if task.project.creator_id != user.id and not user.is_admin:
             return {"error": "Only the project creator can add dependencies."}, 403
  
         # Check for duplicate
@@ -505,7 +504,7 @@ class DependencyById(Resource):
         dep = Dependency.query.get((task_id, predecessor_id))
         if not dep:
             return {"error": "Dependency not found."}, 404
-        if dep.task.project.creator_id != user.id and user.email != user.is_admin:
+        if dep.task.project.creator_id != user.id and bot user.is_admin:
             return {"error": "Only the project creator can remove dependencies."}, 403
  
         db.session.delete(dep)

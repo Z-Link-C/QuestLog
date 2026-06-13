@@ -204,7 +204,7 @@ class UserSchema(Schema):
     created_at = fields.DateTime(dump_only=True)
     # load_only: accepted on register/update, never returned in responses
     password = fields.Str(load_only=True, required=True)
-    is_admin = fields.Bool(default=False, nullable=False)
+    is_admin = fields.Bool(dump_only=True)
 
  
 class LoginSchema(Schema):

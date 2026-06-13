@@ -36,6 +36,6 @@ def owner_or_admin(resource_creator_id):
     user = get_current_user()
     if not user:
         return None, ({"error": "Login required."}, 401)
-    if user.id != resource_creator_id and user.email != ADMIN_EMAIL:
+    if user.id != resource_creator_id and user.email != user.is_admin:
         return None, ({"error": "You do not have permission to modify this resource."}, 403)
     return user, None
