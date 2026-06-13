@@ -21,7 +21,8 @@ class User(db.Model):
     xp_total = db.Column(db.Integer, default=0, nullable=False)
     avatar = db.Column(db.String(255), nullable=True)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
- 
+    is_admin = db.Column(db.Boolean, default=False, nullable=False)
+    
     created_projects = db.relationship("Project",    foreign_keys="[Project.creator_id]",    back_populates="creator")
     assignments_received = db.relationship("Assignment", foreign_keys="[Assignment.user_id]",     back_populates="assignee", cascade="all, delete-orphan")
     assignments_given = db.relationship("Assignment", foreign_keys="[Assignment.assigned_by]", back_populates="assigner")
@@ -140,7 +141,7 @@ class Task(db.Model):
         """Mark done and award XP to assignees. Raises if predecessors unfinished."""
         if self.is_blocked:
             raise ValueError(f"'{self.name}' is blocked — finish prerequisites first.")
-        self.completed    = True
+        self.completed = True
         self.completed_at = datetime.now(timezone.utc)
         for a in self.assignments:
             a.assignee.add_xp(self.xp_value)
@@ -203,6 +204,8 @@ class UserSchema(Schema):
     created_at = fields.DateTime(dump_only=True)
     # load_only: accepted on register/update, never returned in responses
     password = fields.Str(load_only=True, required=True)
+    is_admin = fields.Bool(default=False, nullable=False)
+
  
 class LoginSchema(Schema):
     """Used only for POST /login — not tied to a model."""
