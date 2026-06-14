@@ -8,7 +8,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [showForm, setShowForm] = useState(false)
-  const [newProject, setNewProject] = useState({ name: '', description: '' })
+  const [newProject, setNewProject] = useState({ name: '', description: '', })
 
   // READ — fetch all projects for this user
   useEffect(() => {
@@ -23,18 +23,27 @@ export default function Dashboard() {
   function createProject(e) {
     e.preventDefault()
     fetch(`${API}/projects`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify(newProject),
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(newProject),
     })
-      .then(r => r.json())
-      .then(p => {
+    .then(async (r) => {
+        const data = await r.json()
+        if (!r.ok) throw new Error(data.error || JSON.stringify(data.errors || data))
+        return data
+    })
+    .then(p => {
         setProjects(prev => [...prev, p])
-        setNewProject({ name: '', description: '' })
+        setNewProject({ name: '', description: '', tier: 'dungeon', xp_max: 100 })
         setShowForm(false)
-      })
+    })
+    .catch(err => {
+        console.error("Project Creation Error:", err.message)
+        setError(err.message) // This will now show the actual field validation error
+    })
   }
+
   function handleSubmit(e) {
     e.preventDefault()
     setError('')
