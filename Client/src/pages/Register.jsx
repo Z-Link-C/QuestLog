@@ -15,13 +15,14 @@ export default function Register() {
   }
 
   function handleSubmit(e) {
-    e.preventDefault()
-    setError('')
-    setLoading(true)
+    e.preventDefault();
+    setError('');
+    setLoading(true);
     register(form.name, form.email, form.password)
-      .then(() => navigate('/'))
-      .catch(err => setError(err))
-      .finally(() => setLoading(false))
+    .then(() => navigate('/'))
+    // Ensure you are extracting the string, not the object
+    .catch(err => setError(typeof err === 'string' ? err : "Registration failed"))
+    .finally(() => setLoading(false));
   }
 
   return (
