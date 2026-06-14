@@ -1,34 +1,46 @@
 import os
+import re
 from flask import Flask
 from flask_bcrypt import Bcrypt
 from flask_marshmallow import Marshmallow
 from flask_migrate import Migrate
 from flask_restful import Api
+from dotenv import load_dotenv
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import MetaData
+from flask_cors import CORS
+
+load_dotenv()
 
 app = Flask(__name__)
-app.secret_key = b'Y\xf1Xz\x00\xad|eQ\x80t \xca\x1a\x10K'
 
-DB_URL = "postgresql://App:npg_NfoR2Hv7qDej@ep-purple-butterfly-adsc9tuk-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
-if not DB_URL:
-    raise RuntimeError(
-        "DATABASE_URL is not set. Run: DATABASE_URL=postgresql://user:pass@localhost/questlog python app.py"
-    )
+raw_db_url = os.getenv('DATABASE_URL')
+if not raw_db_url:
+    raise ValueError("DATABASE_URL environment variable is missing in .env")
 
-app.config['SQLALCHEMY_DATABASE_URI'] = DB_URL
+# Force standard synchronous postgresql driver
+sync_db_url = re.sub(r'^postgresql\+psycopg:', 'postgresql:', raw_db_url)
+if not sync_db_url.startswith('postgresql:'):
+    sync_db_url = sync_db_url.replace('postgres:', 'postgresql:', 1)
+
+app.secret_key = os.getenv('SECRET_KEY', b'Y\xf1Xz\x00\xad|eQ\x80t \xca\x1a\x10K')
+app.config['SQLALCHEMY_DATABASE_URI'] = sync_db_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.json.compact = False
 
 metadata = MetaData(naming_convention={
     "fk": "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s",
 })
-db = SQLAlchemy(metadata=metadata)
 
-migrate = Migrate(app, db)
+db = SQLAlchemy(metadata=metadata)
 db.init_app(app)
 
+migrate = Migrate(app, db)
 bcrypt = Bcrypt(app)
 ma = Marshmallow(app)
-
 api = Api(app)
+
+CORS(app, supports_credentials=True, origins=["http://localhost:5173"])
+
+if __name__ == "__main__":
+    app.run(port=5555, debug=True)

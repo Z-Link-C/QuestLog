@@ -1,7 +1,7 @@
 from flask import request, session
 from flask_restful import Resource
 from marshmallow import ValidationError
-
+from datetime import datetime,timezone
 from config import app, db, api
 from models import (
     User, Task, Project, 
@@ -61,8 +61,8 @@ class UserList(Resource):
  
     def post(self):
         """POST /users — register a new account (public)."""
+        user_schema = UserSchema() # Fixed: Instantiate schema
         try:
-            user_schema = UserSchema()
             data = user_schema.load(request.json or {})
         except ValidationError as e:
             return {"error": e.messages}, 422
@@ -88,7 +88,7 @@ class UserById(Resource):
         target = User.query.get(user_id)
         if not target:
             return {"error": "User not found."}, 404
-        if current.id != target.id and current.email != current.is_admin:
+        if current.id != target.id and not current.is_admin: # Fixed conditional logic
             return {"error": "Access denied."}, 403
         
         user_schema = UserSchema()
@@ -103,7 +103,7 @@ class UserById(Resource):
         target = User.query.get(user_id)
         if not target:
             return {"error": "User not found."}, 404
-        if current.id != target.id and current.email != current.is_admin:
+        if current.id != target.id and not current.is_admin: # Fixed conditional logic
             return {"error": "Access denied."}, 403
  
         data = request.json or {}
@@ -161,29 +161,20 @@ class ProjectList(Resource):
         
         projects_schema = ProjectSchema(many=True)
         return projects_schema.dump(projects), 200
- 
+    
     def post(self):
-        """POST /projects — create a project owned by the current user."""
         user, err = login_required()
-        if err:
-            return err
- 
-        try:
-            data = project_schema.load(request.json or {})
-        except ValidationError as e:
-            return {"error": e.messages}, 422
- 
-        project = Project(
-            creator_id=user.id,
-            name=data["name"],
-            description=data.get("description"),
-            parent_project_id=data.get("parent_project_id"),
-        )
-        db.session.add(project)
-        db.session.commit()
+        if err: return err
+        project_schema=ProjectSchema()
+        data = request.get_json()
         
-        project_schema  = ProjectSchema()
-        return project_schema.dump(project), 201
+        # post_load inside the schema returns the Project instance
+        new_project = project_schema.load(data)
+        new_project.creator_id = user.id
+        
+        db.session.add(new_project)
+        db.session.commit()
+        return project_schema.dump(new_project), 201
  
 class ProjectById(Resource):
     def get(self, project_id):
@@ -346,9 +337,9 @@ class TaskById(Resource):
         return {}, 204
   
 class TaskComplete(Resource):
-    def patch(self, task_id):
+    def post(self, task_id):
         """
-        PATCH /tasks/<id>/complete
+        POST /tasks/<id>/complete
         Marks the task done, awards XP to all assignees.
         Returns 409 if the task is blocked by incomplete prerequisites.
         """
@@ -367,18 +358,23 @@ class TaskComplete(Resource):
         except ValueError as e:
             return {"error": str(e)}, 409
  
-        db.session.commit()
+        task.completed = True
+        task.completed_at = datetime.now(timezone.utc)
+        xp_gained = task.xp_value or 0
+
+        # 2. Add the value to the current active session user
+        user.xp_total += xp_gained
  
         break_unlocked = any(
             a.assignee.xp_total % 100 < task.xp_value
             for a in task.assignments
         )
-
+        db.session.commit()
         task_schema  = TaskSchema()
         return {
-            **task_schema.dump(task),
-            "xp_awarded":     task.xp_value,
-            "break_unlocked": break_unlocked,
+            "task": task_schema.dump(task),
+            "xp_total": user.xp_total,
+            "xp_gained": xp_gained
         }, 200
 
 #Assignments
@@ -465,8 +461,8 @@ class DependencyList(Resource):
         if err:
             return err
  
+        dependency_schema = DependencySchema() # Fixed: Instantiate schema
         try:
-            dependency_schema=DependencySchema()
             data = dependency_schema.load(request.json or {})
         except ValidationError as e:
             return {"error": e.messages}, 422

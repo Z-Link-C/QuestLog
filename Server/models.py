@@ -1,6 +1,6 @@
 from sqlalchemy.orm import validates
 from sqlalchemy.ext.hybrid import hybrid_property
-from marshmallow import Schema, fields
+from marshmallow import Schema, fields, post_load
 from datetime import datetime, timezone
 
 from config import db, bcrypt, ma 
@@ -52,7 +52,7 @@ class Project(db.Model):
     __tablename__ = "projects"
  
     id = db.Column(db.Integer, primary_key=True)
-    creator_id = db.Column(db.Integer, db.ForeignKey("users.id"),    nullable=False)
+    creator_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
     parent_project_id = db.Column(db.Integer, db.ForeignKey("projects.id"), nullable=True)
     name = db.Column(db.String(200), nullable=False)
     description = db.Column(db.Text, nullable=True)
@@ -63,10 +63,10 @@ class Project(db.Model):
         onupdate=lambda: datetime.now(timezone.utc),
     )
     
-    creator = db.relationship("User",    foreign_keys=[creator_id],        back_populates="created_projects")
+    creator = db.relationship("User", foreign_keys=[creator_id], back_populates="created_projects")
     parent = db.relationship("Project", remote_side="Project.id", foreign_keys=[parent_project_id], back_populates="sub_projects")
     sub_projects = db.relationship("Project", foreign_keys=[parent_project_id], back_populates="parent")
-    tasks = db.relationship("Task",    back_populates="project",  cascade="all, delete-orphan")
+    tasks = db.relationship("Task", back_populates="project", cascade="all, delete-orphan")
     assignments = db.relationship("Assignment", back_populates="project", cascade="all, delete-orphan")
  
     # Computations (handled at runtime, not stored) 
@@ -214,7 +214,7 @@ class LoginSchema(Schema):
  
 class ProjectSchema(Schema):
     id = fields.Int(dump_only=True)
-    creator_id = fields.Int(required=True)
+    creator_id = fields.Int(dump_only=True)
     parent_project_id = fields.Int(allow_none=True)
     name = fields.Str(required=True)
     description = fields.Str(allow_none=True)
@@ -229,6 +229,11 @@ class ProjectSchema(Schema):
  
     def get_task_count(self, obj):
         return len(obj.tasks)
+    
+    @post_load
+    def make_project(self, data, **kwargs):
+        # This converts the validated dictionary into a Project model instance
+        return Project(**data)
  
 class TaskSchema(Schema):
     id = fields.Int(dump_only=True)
