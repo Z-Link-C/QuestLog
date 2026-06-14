@@ -1,5 +1,12 @@
 export default async function handler(req, res) {
-  const backendBase = process.env.BACKEND_URL || process.env.VITE_API_URL || 'http://127.0.0.1:5555'
+  const backendBase = process.env.BACKEND_URL || process.env.VITE_API_URL
+
+  if (!backendBase) {
+    return res.status(500).json({
+      error: 'BACKEND_URL/VITE_API_URL is not configured for this Vercel deployment.'
+    })
+  }
+
   const requestUrl = new URL(req.url, 'https://localhost')
   const targetPath = requestUrl.pathname.replace(/^\/api/, '') || '/'
   const target = new URL(`${backendBase}${targetPath}${requestUrl.search}`)
