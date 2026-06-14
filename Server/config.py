@@ -1,4 +1,6 @@
 import os
+import asyncio
+import re
 from flask import Flask
 from flask_bcrypt import Bcrypt
 from flask_marshmallow import Marshmallow
@@ -6,11 +8,13 @@ from flask_migrate import Migrate
 from flask_restful import Api
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import MetaData
+from dotenv import load_dotenv
+from sqlalchemy.ext.asyncio import create_async_engine
 
 app = Flask(__name__)
 app.secret_key = b'Y\xf1Xz\x00\xad|eQ\x80t \xca\x1a\x10K'
 
-DB_URL = "postgresql://App:npg_NfoR2Hv7qDej@ep-purple-butterfly-adsc9tuk-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
+DB_URL = os.environ.get("DATABASE_URL") #to keep api links private
 if not DB_URL:
     raise RuntimeError(
         "DATABASE_URL is not set. Run: DATABASE_URL=postgresql://user:pass@localhost/questlog python app.py"
