@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from 'react-router'
+import { Routes, Route, Navigate } from 'react-router-dom'
 import { useUser } from './context/UserContext'
 import NavBar from './components/NavBar'
 import Login from './pages/Login'
