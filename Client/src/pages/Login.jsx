@@ -19,7 +19,7 @@ export default function Login() {
     setLoading(true)
     login(form.email, form.password)
       .then(() => navigate('/'))
-      .catch(err => setError(err))
+      .catch(err => setError(err?.message || String(err)))
       .finally(() => setLoading(false))
   }
 
