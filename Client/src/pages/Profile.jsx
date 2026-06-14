@@ -21,8 +21,19 @@ export default function Profile() {
       credentials: 'include',
       body: JSON.stringify({ name: form.name }),
     })
-      .then(r => r.ok ? r.json() : r.json().then(e => Promise.reject(e.error)))
+      .then(async r => {
+        const data = await r.json().catch(() => null)
+        if (!r.ok) {
+          const message = typeof data?.error === 'string'
+            ? data.error
+            : data?.error
+              ? JSON.stringify(data.error)
+              : 'Update failed'
+          throw new Error(message)
+        }
+        return data
+      })
       .then(updated => { setUser(updated); setEditing(false) })
-      .catch(err => setError(err))
+      .catch(err => setError(err?.message || String(err)))
   }
 }

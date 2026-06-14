@@ -24,7 +24,18 @@ export function UserProvider({ children }) {
       credentials: 'include',
       body: JSON.stringify({ email, password }),
     })
-      .then(r => r.ok ? r.json() : r.json().then(e => Promise.reject(e.error)))
+      .then(async r => {
+        const data = await r.json().catch(() => null)
+        if (!r.ok) {
+          const message = typeof data?.error === 'string'
+            ? data.error
+            : data?.error
+              ? JSON.stringify(data.error)
+              : 'Login failed'
+          throw new Error(message)
+        }
+        return data
+      })
       .then(setUser)
   }, [])
 
@@ -35,7 +46,18 @@ export function UserProvider({ children }) {
       credentials: 'include',
       body: JSON.stringify({ name, email, password }),
     })
-      .then(r => r.ok ? r.json() : r.json().then(e => Promise.reject(e.error)))
+      .then(async r => {
+        const data = await r.json().catch(() => null)
+        if (!r.ok) {
+          const message = typeof data?.error === 'string'
+            ? data.error
+            : data?.error
+              ? JSON.stringify(data.error)
+              : 'Registration failed'
+          throw new Error(message)
+        }
+        return data
+      })
       .then(setUser)
   }, [])
 
