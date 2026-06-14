@@ -1,2 +1,4 @@
 Server/seed.py
 .env
+.vercel
+.env*
