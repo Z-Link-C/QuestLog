@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router'
+import { useParams, useNavigate } from 'react-router-dom'
 import { useUser, API } from '../context/UserContext'
 import TaskCard from '../components/TaskCard'
 

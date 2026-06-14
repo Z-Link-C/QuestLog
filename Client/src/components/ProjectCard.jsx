@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link } from 'react-router'
+import { Link } from 'react-router-dom'
 import { useUser, API } from '../context/UserContext'
 
 const TIER_EMOJI = { dungeon: '🏰', boss: '💀', miniboss: '⚔️' }

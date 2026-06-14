@@ -1,4 +1,4 @@
-import { Link, useNavigate } from 'react-router'
+import { Link, useNavigate } from 'react-router-dom'
 import { useUser } from '../context/UserContext'
 
 const BREAK_THRESHOLD = 100
