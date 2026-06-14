@@ -10,7 +10,7 @@ from sqlalchemy import MetaData
 app = Flask(__name__)
 app.secret_key = b'Y\xf1Xz\x00\xad|eQ\x80t \xca\x1a\x10K'
 
-DB_URL = os.environ.get("DB")
+DB_URL = "postgresql://App:npg_NfoR2Hv7qDej@ep-purple-butterfly-adsc9tuk-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
 if not DB_URL:
     raise RuntimeError(
         "DATABASE_URL is not set. Run: DATABASE_URL=postgresql://user:pass@localhost/questlog python app.py"
