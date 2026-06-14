@@ -40,7 +40,8 @@ bcrypt = Bcrypt(app)
 ma = Marshmallow(app)
 api = Api(app)
 
-CORS(app, supports_credentials=True, origins=["http://localhost:5173"])
+cors_origins = [origin.strip() for origin in os.getenv('CORS_ORIGINS', 'http://localhost:5173,https://quest-log-ochre.vercel.app').split(',') if origin.strip()]
+CORS(app, supports_credentials=True, origins=cors_origins)
 
 if __name__ == "__main__":
     app.run(port=5555, debug=True)
