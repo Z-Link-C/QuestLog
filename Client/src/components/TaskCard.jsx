@@ -1,7 +1,6 @@
-
 import { useState, useEffect } from 'react'
-import { API } from '../context/UserContext'
-
+import { useUser } from '../context/UserContext'
+ 
 function formatTime(secs) {
   if (secs === null || secs === undefined) return null
   const h = Math.floor(secs / 3600)
@@ -11,26 +10,25 @@ function formatTime(secs) {
   if (m > 0) return `${m}m ${s}s`
   return `${s}s`
 }
-
+ 
 export default function TaskCard({ task, isOwner, onDelete, onComplete, onUpdate }) {
+  const { authFetch } = useUser()
   const [editing, setEditing]         = useState(false)
   const [form, setForm]               = useState({ name: task.name, description: task.description || '', est_minutes: task.est_minutes })
   const [secondsLeft, setSecondsLeft] = useState(task.seconds_remaining)
-
+ 
   // Live countdown — ticks every second while task is timed and incomplete
   useEffect(() => {
     if (!task.is_timed || task.completed || !task.seconds_remaining) return
     const interval = setInterval(() => setSecondsLeft(s => s > 0 ? s - 1 : 0), 1000)
     return () => clearInterval(interval)
   }, [task])
-
+ 
   // UPDATE — PATCH then lift updated task up to ProjectDetail
   function handleUpdate(e) {
     e.preventDefault()
-    fetch(`${API}/tasks/${task.id}`, {
+    authFetch(`/tasks/${task.id}`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
       body: JSON.stringify({
         name:        form.name,
         description: form.description || null,
@@ -40,7 +38,7 @@ export default function TaskCard({ task, isOwner, onDelete, onComplete, onUpdate
       .then(r => r.json())
       .then(updated => { onUpdate(updated); setEditing(false) })
   }
-
+ 
   return (
     <div className={`task-card ${task.completed ? 'completed' : ''} ${task.is_blocked ? 'blocked' : ''}`}>
       {editing ? (
@@ -64,7 +62,7 @@ export default function TaskCard({ task, isOwner, onDelete, onComplete, onUpdate
               )}
               <span className={`task-name ${task.completed ? 'strikethrough' : ''}`}>{task.name}</span>
             </div>
-
+ 
             <div className="task-badges">
               <span className="xp-badge">+{task.xp_value} XP</span>
               {task.is_timed && secondsLeft !== null && !task.completed && (
@@ -74,9 +72,9 @@ export default function TaskCard({ task, isOwner, onDelete, onComplete, onUpdate
               {task.completed  && <span className="done-badge">✓ Done</span>}
             </div>
           </div>
-
+ 
           {task.description && <p className="task-desc muted">{task.description}</p>}
-
+ 
           {isOwner && !task.completed && (
             <div className="task-actions">
               <button onClick={() => setEditing(true)}  className="text-btn">Edit</button>

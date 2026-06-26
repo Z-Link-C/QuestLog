@@ -1,31 +1,29 @@
 import { useState, useEffect } from 'react'
-import { useUser, API } from '../context/UserContext'
+import { useUser } from '../context/UserContext'
 import ProjectCard from '../components/ProjectCard'
-
+ 
 export default function Dashboard() {
-  const { user } = useUser()
+  const { user, authFetch } = useUser()
   const [projects, setProjects] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [showForm, setShowForm] = useState(false)
   const [newProject, setNewProject] = useState({ name: '', description: '', })
-
+ 
   // READ — fetch all projects for this user
   useEffect(() => {
-    fetch(`${API}/projects`, { credentials: 'include' })
+    authFetch('/projects')
       .then(r => r.json())
       .then(setProjects)
       .catch(() => setError('Failed to load projects'))
       .finally(() => setLoading(false))
-  }, [])
-
+  }, [authFetch])
+ 
   // CREATE
   function createProject(e) {
     e.preventDefault()
-    fetch(`${API}/projects`, {
+    authFetch('/projects', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify(newProject),
     })
     .then(async (r) => {
@@ -40,33 +38,23 @@ export default function Dashboard() {
     })
     .catch(err => {
         console.error("Project Creation Error:", err.message)
-        setError(err.message) // This will now show the actual field validation error
+        setError(err.message)
     })
   }
-
-  function handleSubmit(e) {
-    e.preventDefault()
-    setError('')
-    setLoading(true)
-    login(form.email, form.password)
-      .then(() => navigate('/'))
-      // Fix: Force error to be a string message, not an object
-      .catch(err => setError(err?.message || String(err))) 
-      .finally(() => setLoading(false))
-  }
+ 
   // DELETE — called from ProjectCard
   function deleteProject(id) {
-    fetch(`${API}/projects/${id}`, { method: 'DELETE', credentials: 'include' })
+    authFetch(`/projects/${id}`, { method: 'DELETE' })
       .then(() => setProjects(prev => prev.filter(p => p.id !== id)))
   }
-
+ 
   // UPDATE — called from ProjectCard after a PATCH
   function updateProject(updated) {
     setProjects(prev => prev.map(p => p.id === updated.id ? updated : p))
   }
-
+ 
   if (loading) return <div className="loading">Loading quests...</div>
-
+ 
   return (
     <div className="page">
       <div className="page-header">
@@ -78,9 +66,9 @@ export default function Dashboard() {
           {showForm ? 'Cancel' : '+ New project'}
         </button>
       </div>
-
+ 
       {error && <p className="error">{error}</p>}
-
+ 
       {showForm && (
         <form className="inline-form" onSubmit={createProject}>
           <input
@@ -97,7 +85,7 @@ export default function Dashboard() {
           <button type="submit">Create</button>
         </form>
       )}
-
+ 
       {projects.length === 0
         ? <div className="empty-state"><p>No projects yet. Create one to start earning XP.</p></div>
         : (
