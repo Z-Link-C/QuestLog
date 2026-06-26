@@ -1,15 +1,16 @@
 import os
 import re
+from datetime import timedelta
 from flask import Flask
 from flask_bcrypt import Bcrypt
 from flask_marshmallow import Marshmallow
 from flask_migrate import Migrate
 from flask_restful import Api
+from flask_jwt_extended import JWTManager
 from dotenv import load_dotenv
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import MetaData
 from flask_cors import CORS
-
 load_dotenv()
 
 app = Flask(__name__)
@@ -28,20 +29,24 @@ app.config['SQLALCHEMY_DATABASE_URI'] = sync_db_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.json.compact = False
 
+app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', app.secret_key)
+app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(days=7)
+jwt = JWTManager(app)
+ 
 metadata = MetaData(naming_convention={
     "fk": "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s",
 })
-
+ 
 db = SQLAlchemy(metadata=metadata)
 db.init_app(app)
-
+ 
 migrate = Migrate(app, db)
 bcrypt = Bcrypt(app)
 ma = Marshmallow(app)
 api = Api(app)
-
+ 
 cors_origins = [origin.strip() for origin in os.getenv('CORS_ORIGINS', 'http://localhost:5173,https://quest-log-ochre.vercel.app').split(',') if origin.strip()]
-CORS(app, supports_credentials=True, origins=cors_origins)
+CORS(app, supports_credentials=True, origins=cors_origins, allow_headers=["Content-Type", "Authorization"])
 
 if __name__ == "__main__":
     app.run(port=5555, debug=True)

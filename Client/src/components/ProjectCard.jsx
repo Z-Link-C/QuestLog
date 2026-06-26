@@ -1,28 +1,26 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { useUser, API } from '../context/UserContext'
-
+import { useUser } from '../context/UserContext'
+ 
 const TIER_EMOJI = { dungeon: '🏰', boss: '💀', miniboss: '⚔️' }
-
+ 
 export default function ProjectCard({ project, onDelete, onUpdate }) {
-  const { user }        = useUser()
+  const { user, authFetch } = useUser()
   const [editing, setEditing] = useState(false)
   const [form, setForm]       = useState({ name: project.name, description: project.description || '' })
   const isOwner = project.creator_id === user.id || user.is_admin
-
+ 
   // UPDATE — PATCH then lift updated project up to Dashboard
   function handleUpdate(e) {
     e.preventDefault()
-    fetch(`${API}/projects/${project.id}`, {
+    authFetch(`/projects/${project.id}`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
       body: JSON.stringify(form),
     })
       .then(r => r.json())
       .then(updated => { onUpdate(updated); setEditing(false) })
   }
-
+ 
   return (
     <div className={`project-card tier-${project.tier}`}>
       <div className="card-header">
@@ -34,7 +32,7 @@ export default function ProjectCard({ project, onDelete, onUpdate }) {
           </div>
         )}
       </div>
-
+ 
       {editing ? (
         <form onSubmit={handleUpdate} className="inline-form">
           <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} required />
@@ -60,3 +58,4 @@ export default function ProjectCard({ project, onDelete, onUpdate }) {
     </div>
   )
 }
+ 

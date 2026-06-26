@@ -1,5 +1,6 @@
-from flask import request, session
+from flask import request
 from flask_restful import Resource
+from flask_jwt_extended import create_access_token
 from marshmallow import ValidationError
 from datetime import datetime,timezone
 from config import app, db, api
@@ -38,15 +39,14 @@ class Login(Resource):
         if not user or not user.check_password(data["password"]):
             return {"error": "Invalid email or password."}, 401
  
-        session["user_id"] = user.id
+        access_token = create_access_token(identity=str(user.id))
         user_schema=UserSchema()
-        return user_schema.dump(user), 200
+        return {**user_schema.dump(user), "access_token": access_token}, 200
  
  
 class Logout(Resource):
     def delete(self):
         """DELETE /logout — clears the session."""
-        session.pop("user_id", None)
         return {}, 204
 
 #Users
@@ -75,8 +75,8 @@ class UserList(Resource):
         db.session.add(user)
         db.session.commit()
  
-        session["user_id"] = user.id
-        return user_schema.dump(user), 201
+        access_token = create_access_token(identity=str(user.id))
+        return {**user_schema.dump(user), "access_token": access_token}, 201
  
 class UserById(Resource):
     def get(self, user_id):
@@ -186,7 +186,6 @@ class ProjectById(Resource):
         project = Project.query.get(project_id)
         if not project:
             return {"error": "Project not found."}, 404
-        
  
         tasks_schema  = TaskSchema(many=True)
         project_schema  = ProjectSchema()
@@ -205,7 +204,7 @@ class ProjectById(Resource):
             return err
  
         data = request.json or {}
-        if "name"        in data: project.name        = data["name"]
+        if "name" in data: project.name = data["name"]
         if "description" in data: project.description = data["description"]
  
         db.session.commit()
@@ -251,7 +250,7 @@ class TaskList(Resource):
         is_assigned = any(a.project_id == project_id for a in user.assignments_received)
         if not (is_creator or is_assigned or user.is_admin):
             return {"error": "Access denied."}, 403
-
+ 
         tasks_schema = TaskSchema(many=True)
         return tasks_schema.dump(project.tasks), 200
  
@@ -319,7 +318,7 @@ class TaskById(Resource):
  
         db.session.commit()
 
-        task_schema  = TaskSchema()
+        task_schema = TaskSchema()
         return task_schema.dump(task), 200
  
     def delete(self, task_id):
@@ -370,7 +369,7 @@ class TaskComplete(Resource):
             for a in task.assignments
         )
         db.session.commit()
-        task_schema  = TaskSchema()
+        task_schema = TaskSchema()
         return {
             "task": task_schema.dump(task),
             "xp_total": user.xp_total,
@@ -393,7 +392,7 @@ class AssignmentList(Resource):
  
         # Validate XOR (project OR task, not both/neither)
         has_project = bool(data.get("project_id"))
-        has_task    = bool(data.get("task_id"))
+        has_task = bool(data.get("task_id"))
         if has_project == has_task:
             return {"error": "Provide exactly one of 'project_id' or 'task_id'."}, 422
  
@@ -418,7 +417,7 @@ class AssignmentList(Resource):
             resource = Task.query.get(data["task_id"])
             if not resource:
                 return {"error": "Task not found."}, 404
-            if resource.project.creator_id != assigner.id and assigner.email != assigner.is_admin:
+            if resource.project.creator_id != assigner.id and not assigner.is_admin:
                 return {"error": "Only the project creator can assign tasks."}, 403
             assignment = Assignment(
                 user_id=target_user.id,
