@@ -8,5 +8,6 @@ flask-jwt-extended
 marshmallow
 marshmallow-sqlalchemy
 psycopg2-binary
+python-dotenv
 gunicorn
  
